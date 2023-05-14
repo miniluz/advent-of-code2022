@@ -1,6 +1,6 @@
 mod item {
     #[repr(transparent)]
-    #[derive(Clone, Copy, PartialEq, Eq)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
     pub(crate) struct Item(u8);
 
     impl TryFrom<u8> for Item {
@@ -34,25 +34,28 @@ mod item {
     }
 }
 
+use std::collections::HashSet;
+
 use item::Item;
+use itertools::Itertools;
 fn main() -> color_eyre::Result<()> {
-    let sum = include_str!("input.txt")
-        .lines()
-        .map(|line| -> color_eyre::Result<_> {
-            let (first, second) = line.split_at(line.len() / 2);
+    let rutsacks = include_str!("input.txt").lines().map(|line| {
+        line.bytes()
+            .map(Item::try_from)
+            .collect::<Result<HashSet<_>, _>>()
+    });
 
-            let first_items = first
-                .bytes()
-                .map(Item::try_from)
-                .collect::<Result<Vec<_>, _>>()?;
-
-            itertools::process_results(second.bytes().map(Item::try_from), |mut it| {
-                it.find(|item| first_items.contains(item))
-                    .map(|item| dbg!(item.score()))
-                    .ok_or_else(|| color_eyre::eyre::eyre!("compartments have no items in common."))
-            })?
-        })
-        .sum::<color_eyre::Result<usize>>()?;
+    let sum = itertools::process_results(rutsacks, |rs| {
+        rs.tuples()
+            .map(|(a, b, c)| {
+                a.iter()
+                    .copied()
+                    .find(|i| b.contains(i) && c.contains(i))
+                    .map(|i| dbg!(i.score()))
+                    .unwrap_or(0)
+            })
+            .sum::<usize>()
+    })?;
 
     dbg!(sum);
 

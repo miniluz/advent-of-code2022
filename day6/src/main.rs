@@ -1,37 +1,37 @@
-use std::collections::VecDeque;
+use std::collections::HashSet;
 
-fn matches<T>(vector: &VecDeque<T>) -> bool
-where
-    T: std::cmp::Eq + std::hash::Hash,
-{
-    use std::collections::HashSet;
-    vector.iter().collect::<HashSet<_>>().len() != vector.len()
+#[cfg(test)]
+mod tests {
+    use crate::find_marker;
+    use test_case::test_case;
+
+    #[test_case(7, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", 4)]
+    #[test_case(19, "mjqjpqmgbljsphdztnvjfqwrcgsmlb", 14)]
+    #[test_case(5, "bvwbjplbgvbhsrlpgdmjqwftvncz", 4)]
+    #[test_case(23, "bvwbjplbgvbhsrlpgdmjqwftvncz", 14)]
+    #[test_case(10, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 4)]
+    #[test_case(29, "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg", 14)]
+    #[test_case(11, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 4)]
+    #[test_case(26, "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw", 14)]
+    fn test_find_marker(index: usize, input: &str, buffer_size: usize) {
+        assert_eq!(Some(index), find_marker(input, buffer_size))
+    }
+}
+
+fn find_marker(input: &str, buffer_size: usize) -> Option<usize> {
+    input
+        .as_bytes()
+        .windows(buffer_size)
+        .position(|window| window.iter().collect::<HashSet<_>>().len() == buffer_size)
+        .map(|n| n + buffer_size)
 }
 
 fn main() -> color_eyre::Result<()> {
-    let input = include_str!("input.txt");
+    let answer = find_marker(include_str!("input.txt"), 4);
+    dbg!(answer);
 
-    let buffer_size: usize = 14;
-    let (first, second) = input.split_at(buffer_size - 1);
-
-    let mut buffer: VecDeque<_> = first.chars().take(buffer_size - 1).collect();
-
-    let answer = second
-        .chars()
-        .enumerate()
-        .filter_map(|(i, char)| {
-            buffer.push_back(char);
-            let i = match matches(&buffer) {
-                true => None,
-                false => Some(i + buffer_size),
-            };
-            buffer.pop_front();
-            i
-        })
-        .next()
-        .ok_or(color_eyre::eyre::eyre!("Should have a result"))?;
-
-    println!("{answer}");
+    let answer = find_marker(include_str!("input.txt"), 14);
+    dbg!(answer);
 
     Ok(())
 }
